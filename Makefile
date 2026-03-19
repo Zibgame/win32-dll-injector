@@ -1,4 +1,4 @@
-NAME = bin/dll_injector.exe
+NAME = dll_injector.exe
 DLL = bin/dll.dll
 TARGET = bin/target.exe
 
@@ -26,7 +26,6 @@ LIBS = -ld3d11 -ldxgi -ld3dcompiler -lgdi32 -ldwmapi
 all: $(NAME) $(DLL) $(TARGET)
 
 $(NAME): $(OBJ)
-	if not exist bin mkdir bin
 	$(CXX) $(OBJ) -o $(NAME) $(LIBS)
 
 $(DLL): $(DLL_SRC)
@@ -47,6 +46,7 @@ clean:
 	del /Q /S src\injector\*.o 2>nul
 
 fclean: clean
+	del /Q $(NAME) 2>nul
 	del /Q /S bin\*.exe 2>nul
 	del /Q /S bin\*.dll 2>nul
 

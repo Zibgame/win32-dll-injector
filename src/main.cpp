@@ -17,13 +17,17 @@ static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
 static void cleanup_render_target()
 {
     if (g_mainRenderTargetView)
+    {
         g_mainRenderTargetView->Release();
+        g_mainRenderTargetView = NULL;
+    }
 }
 
 static void create_render_target()
 {
     ID3D11Texture2D* pBackBuffer = NULL;
-    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+    if (g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer)) != S_OK)
+        return;
     g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
     pBackBuffer->Release();
 }
@@ -76,7 +80,8 @@ int main()
     RegisterClassEx(&wc);
 
     HWND hwnd = CreateWindow(wc.lpszClassName, _T("DLL Injector"),
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 500, 300,
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        100, 100, 500, 300,
         NULL, NULL, wc.hInstance, NULL);
 
     if (!create_device_d3d(hwnd))
@@ -87,6 +92,41 @@ int main()
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    style.WindowRounding = 12.0f;
+    style.FrameRounding = 10.0f;
+    style.GrabRounding = 8.0f;
+    style.ScrollbarRounding = 10.0f;
+    style.FramePadding = ImVec2(10, 6);
+
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
+
+    style.Colors[ImGuiCol_Button] = ImVec4(0.00f, 1.00f, 0.10f, 0.70f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.00f, 1.00f, 0.50f, 1.0f);
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.00f, 0.80f, 0.30f, 1.0f);
+
+    style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.95f, 0.90f, 1.0f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 1.00f, 0.40f, 0.3f);
+
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.00f, 1.00f, 0.40f, 0.3f);
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    ImFont* font_bold = io.Fonts->AddFontFromFileTTF(
+        "C:/Windows/Fonts/segoeuib.ttf", 18.0f);
+
+    if (!font_bold)
+        font_bold = io.Fonts->AddFontDefault();
+
+    io.FontGlobalScale = 1.3f;
+
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
@@ -119,20 +159,26 @@ int main()
 
         float width = ImGui::GetContentRegionAvail().x;
 
+        ImGui::Text("Enter the target process ID");
         ImGui::InputInt("##pid", &pid);
 
         ImGui::PushItemWidth(width);
+        ImGui::Text("Enter the path of the DLL to inject");
         ImGui::InputText("##dll", dll_path, 260);
         ImGui::PopItemWidth();
 
-        if (ImGui::Button("Inject", ImVec2(width, 40)))
+        ImGui::PushFont(font_bold);
+        if (ImGui::Button("Inject", ImVec2(width, 45)))
+        {
             if (pid > 0 && dll_path[0] != '\0')
                 inject_dll(pid, dll_path);
+        }
+        ImGui::PopFont();
 
         ImGui::End();
 
         ImGui::Render();
-        const float clear_color[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+        float clear_color[4] = {0.85f, 0.92f, 1.0f, 1.0f};
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
         g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
