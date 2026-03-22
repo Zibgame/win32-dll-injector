@@ -30,6 +30,7 @@ $(NAME): $(OBJ)
 
 $(DLL): $(DLL_SRC)
 	if not exist bin mkdir bin
+	CXXFLAGS += -m64
 	$(CXX) -shared -o $(DLL) $(DLL_SRC) -luser32
 
 $(TARGET): $(TARGET_SRC)

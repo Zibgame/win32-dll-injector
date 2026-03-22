@@ -5,6 +5,48 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include "dll_injector.hpp"
+#include <tlhelp32.h>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+typedef struct s_process
+{
+    std::string name;
+    DWORD pid;
+} t_process;
+
+std::vector<t_process> get_process_list()
+{
+    std::vector<t_process> list;
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return list;
+
+    PROCESSENTRY32 pe;
+    pe.dwSize = sizeof(PROCESSENTRY32);
+
+    if (Process32First(snapshot, &pe))
+    {
+        do
+        {
+            t_process p;
+            p.name = pe.szExeFile;
+            p.pid = pe.th32ProcessID;
+            list.push_back(p);
+        }
+        while (Process32Next(snapshot, &pe));
+        std::sort(list.begin(), list.end(),
+        [](const t_process &a, const t_process &b)
+        {
+            return a.name < b.name;
+        });
+    }
+
+    CloseHandle(snapshot);
+    return list;
+}
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(
     HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -81,7 +123,7 @@ int main()
 
     HWND hwnd = CreateWindow(wc.lpszClassName, _T("DLL Injector"),
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        100, 100, 500, 300,
+        100, 100, 600, 600,
         NULL, NULL, wc.hInstance, NULL);
 
     if (!create_device_d3d(hwnd))
@@ -107,12 +149,12 @@ int main()
     style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
     style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
 
-    style.Colors[ImGuiCol_Button] = ImVec4(0.00f, 1.00f, 0.10f, 0.70f);
-    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.00f, 1.00f, 0.50f, 1.0f);
-    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.00f, 0.80f, 0.30f, 1.0f);
+    style.Colors[ImGuiCol_Button]        = ImVec4(0.60f, 0.00f, 1.00f, 0.70f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.75f, 0.20f, 1.00f, 1.00f);
+    style.Colors[ImGuiCol_ButtonActive]  = ImVec4(0.50f, 0.00f, 0.80f, 1.00f);
 
-    style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.95f, 0.90f, 1.0f);
-    style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 1.00f, 0.40f, 0.3f);
+    style.Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.60f, 0.00f, 1.00f, 0.70f);
 
     style.Colors[ImGuiCol_TitleBg] = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
     style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.00f, 1.00f, 0.40f, 0.3f);
@@ -131,9 +173,10 @@ int main()
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
     char dll_path[260] = "";
-    int pid = 0;
+    DWORD pid = 0;
 
     MSG msg;
+    std::vector<t_process> process_list = get_process_list();
     while (true)
     {
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -158,9 +201,22 @@ int main()
             ImGuiWindowFlags_NoMove);
 
         float width = ImGui::GetContentRegionAvail().x;
+        ImGui::Text("Selected PID: %ld", pid);
 
-        ImGui::Text("Enter the target process ID");
-        ImGui::InputInt("##pid", &pid);
+        ImGui::BeginChild("process_list", ImVec2(0, 300), true);
+        for (size_t i = 0; i < process_list.size(); i++)
+        {
+            std::string label = process_list[i].name + " (" + std::to_string(process_list[i].pid) + ")";
+
+            if (ImGui::Selectable(label.c_str(), pid == process_list[i].pid))
+                pid = process_list[i].pid;
+        }
+        ImGui::EndChild();
+
+        if (ImGui::Button("Refresh"))
+        {
+            process_list = get_process_list();
+        }
 
         ImGui::PushItemWidth(width);
         ImGui::Text("Enter the path of the DLL to inject");

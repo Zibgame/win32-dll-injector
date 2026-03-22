@@ -23,11 +23,17 @@ DWORD ft_putstr(char *str)
     return (i);
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
+DWORD WINAPI thread_func(LPVOID param)
 {
-    if (fdwReason == DLL_PROCESS_ATTACH)
+    MessageBoxA(0, "Injected!", "OK", 0);
+    return 0;
+}
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID reserved)
+{
+    if (reason == DLL_PROCESS_ATTACH)
     {
-        MessageBoxA(0, "Injected!", "OK", 0);
+        CreateThread(0, 0, thread_func, 0, 0, 0);
     }
     return 1;
 }

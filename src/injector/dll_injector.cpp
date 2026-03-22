@@ -37,7 +37,8 @@ int inject_dll(DWORD pid, char *dll_path)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-function-type"
 
-    load_library = (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+    HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+    load_library = (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryA");
 
     #pragma GCC diagnostic pop
 
