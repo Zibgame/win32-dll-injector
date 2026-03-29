@@ -8,7 +8,7 @@
 
 ## 🧠 Overview
 
-Win32 DLL Injector is a lightweight Windows tool that allows controlled injection of a DLL into a running process.
+Win64 DLL Injector is a lightweight Windows tool that allows controlled injection of a DLL into a running process.
 
 It features a modern GUI built with Dear ImGui + DirectX 11 and demonstrates low-level Windows internals such as process manipulation and remote code execution.
 
