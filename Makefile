@@ -21,32 +21,40 @@ TARGET_SRC = src/target/main.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
+# ✅ ICON FIX
+ICON_RC = src/img/icon.rc
+ICON_RES = src/img/icon.res
+
 LIBS = -ld3d11 -ldxgi -ld3dcompiler -lgdi32 -ldwmapi
 
-# Detect Windows (disable colors if needed)
-ifeq ($(OS),Windows_NT)
-	GREEN=
-	YELLOW=
-	RED=
-	CYAN=
-	RESET=
-else
-	GREEN=\x1b[32m
-	YELLOW=\x1b[33m
-	RED=\x1b[31m
-	CYAN=\x1b[36m
-	RESET=\x1b[0m
-endif
+GREEN=\033[1;32m
+YELLOW=\033[1;33m
+RED=\033[1;31m
+CYAN=\033[1;36m
+RESET=\033[0m
 
 all: $(NAME) $(DLL) $(TARGET)
 
-$(NAME): $(OBJ)
+# =========================
+# EXE
+# =========================
+$(NAME): $(OBJ) $(ICON_RES)
 	@echo $(CYAN)[INFO] Killing running injector...$(RESET)
 	-taskkill /F /IM dll_injector.exe >nul 2>&1
 	@echo $(GREEN)[BUILD] Compiling injector...$(RESET)
-	$(CXX) $(OBJ) -o $(NAME) $(LIBS)
+	$(CXX) $(OBJ) $(ICON_RES) -o $(NAME) $(LIBS)
 	@echo $(GREEN)[OK] Injector built successfully$(RESET)
 
+# =========================
+# ICON (.rc → .res)
+# =========================
+$(ICON_RES): $(ICON_RC)
+	@echo $(YELLOW)[COMPILING] icon.rc$(RESET)
+	windres $(ICON_RC) -O coff -o $(ICON_RES)
+
+# =========================
+# DLL
+# =========================
 $(DLL): $(DLL_SRC)
 	@echo $(CYAN)[INFO] Cleaning DLL locks...$(RESET)
 	-taskkill /F /IM target.exe >nul 2>&1
@@ -56,22 +64,32 @@ $(DLL): $(DLL_SRC)
 	$(CXX) -shared -o $(DLL) $(DLL_SRC) -luser32
 	@echo $(GREEN)[OK] DLL built successfully$(RESET)
 
+# =========================
+# TARGET
+# =========================
 $(TARGET): $(TARGET_SRC)
 	@echo $(CYAN)[INFO] Building target process...$(RESET)
 	@if not exist bin mkdir bin
 	$(CXX) $(TARGET_SRC) -o $(TARGET)
 	@echo $(GREEN)[OK] Target built successfully$(RESET)
 
+# =========================
+# OBJ
+# =========================
 %.o: %.cpp
 	@echo $(YELLOW)[COMPILING] $<$(RESET)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# =========================
+# CLEAN
+# =========================
 clean:
 	@echo $(RED)[CLEAN] Removing object files...$(RESET)
 	-del /Q /S src\*.o >nul 2>&1
 	-del /Q /S src\imgui\*.o >nul 2>&1
 	-del /Q /S src\imgui\backends\*.o >nul 2>&1
 	-del /Q /S src\injector\*.o >nul 2>&1
+	-del /Q $(ICON_RES) >nul 2>&1
 
 fclean: clean
 	@echo $(RED)[FCLEAN] Removing binaries...$(RESET)

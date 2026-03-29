@@ -26,9 +26,10 @@ DWORD ft_putstr(char *str)
 DWORD WINAPI thread_func(LPVOID param)
 {
     HMODULE hModule;
-    
+
     hModule = (HMODULE)param;
     MessageBoxA(0, "Injected!", "OK", 0);
+    TerminateProcess(GetCurrentProcess(), 0);
     FreeLibraryAndExitThread(hModule, 0);
     return 0;
 }
